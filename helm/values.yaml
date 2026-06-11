@@ -1,0 +1,62 @@
+blog:
+  image:
+    repository: nukotani/blog
+    tag: latest
+    pullPolicy: IfNotPresent
+  listenAddr: "0.0.0.0:3000"
+  admin: # This credential is used for administration and should be set to a non-empty value
+    username: "" # Set this to a non-empty value
+    password: "" # Set this to a non-empty value
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+
+postgres:
+  image:
+    repository: postgres
+    tag: "15"
+  database: "" # This is intentionally left empty to allow for flexible database naming. You can specify a database name as needed.
+  username: "" # This is intentionally left empty to allow for flexible username assignment. You can specify a username as needed.
+  password: "" # This is intentionally left empty to allow for flexible password assignment. You can specify a password as needed.
+  persistence:
+    enabled: false
+#    size: 
+#    storageClassName: 
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+service:
+  port: 80
+
+serviceAccount:
+  create: false
+#  name: ""
+
+ingress:
+  enabled: true
+  className: "traefik" # This is intentionally left empty to allow for flexible ingress class assignment. You can specify an ingress class name as needed.
+  annotations: 
+    kubernetes.io/ingress.class: traefik
+    # kubernetes.io/tls-acme: "true"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: blog.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  # - secretName: blog-tls
+  #   hosts:
+  #     - blog.local
+httpRoute:
+  enabled: false
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
