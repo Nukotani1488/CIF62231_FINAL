@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "blog.fullname" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "blog.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "blog.fullname" . }}
+    spec:
+      containers:
+        - name: blog
+          image: "{{ .Values.blog.image.repository }}:{{ .Values.blog.image.tag }}"
+          imagePullPolicy: {{ .Values.blog.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+
+          {{- if .Values.blog.resources }}
+          resources:
+            requests:
+              cpu: {{ .Values.blog.resources.requests.cpu }}
+              memory: {{ .Values.blog.resources.requests.memory }}
+            {{- if .Values.blog.resources.limits}}
+            limits:
+              cpu: {{ .Values.blog.resources.limits.cpu }}
+              memory: {{ .Values.blog.resources.limits.memory }}
+            {{- end}}
+          {{- end}}
+
+          env:
+            - name: LISTEN_ADDR
+              value: {{ .Values.blog.listenAddr | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: DATABASE_URL
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: ADMIN_USERNAME
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-secrets
+                  key: ADMIN_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5

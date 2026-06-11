@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "blog.fullname" . }}
+spec:
+  selector:
+    app: {{ include "blog.fullname" . }}
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: ClusterIP
