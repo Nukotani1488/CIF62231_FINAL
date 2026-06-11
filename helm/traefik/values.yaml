@@ -1,0 +1,30 @@
+service:
+  spec:
+    externalTrafficPolicy: Local
+  type: NodePort
+ports:
+  web:
+    port: 80
+    nodePort: 30080
+  websecure:
+    port: 443
+    nodePort: 30443
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+logs:
+  access:
+    enabled: true
+deployment:
+  kind: DaemonSet
+  podSecurityContext:
+    sysctls:
+    - name: net.ipv4.ip_unprivileged_port_start
+      value: "0"
+securityContext:
+  capabilities:
+    add:
+    - NET_BIND_SERVICE
+  readOnlyRootFilesystem: true
+  runAsNonRoot: false
+  runAsUser: 0
