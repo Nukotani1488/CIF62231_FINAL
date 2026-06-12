@@ -15,6 +15,7 @@ askama = "0.16.0"
 pulldown-cmark = "0.13.4"
 rand = "0.10.1"
 bcrypt = "0.19.1"
+tracing = "0.1.44"
 
 [dependencies.tokio]
 version = "1.51.0"

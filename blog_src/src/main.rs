@@ -3,10 +3,12 @@ use std::env;
 use axum::Router;
 use dotenv::dotenv;
 use sqlx::{PgPool, postgres::PgPoolOptions};
+use tracing;
 
 #[derive(Clone)]
 pub struct AppState {
     pool: PgPool,
+    pod_name: String,
 }
 
 pub mod db;
@@ -17,8 +19,14 @@ pub mod model;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_target(true)
+        .with_thread_ids(true)
+        .init();
     dotenv().ok();
+
+    let pod_name = env::var("POD_NAME").unwrap_or_else(|_| "unknown".into());
+    tracing::info!("Starting blog server in pod: {}", pod_name);
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
@@ -32,16 +40,18 @@ async fn main() {
         .await
         .expect("Failed to run migrations");
 
-    let state = AppState { pool };
+    let state = AppState { pool, pod_name };
 
     let admin_username = env::var("ADMIN_USERNAME").unwrap_or_else(|_| "admin".into());
     let admin_password = env::var("ADMIN_PASSWORD").unwrap_or_else(|_| "admin".into());
     let _ = db::user::create_user(&admin_username, &admin_password, &state.pool).await;
 
-    let public_routes = handler::public_routes();
-    let protected_routes = handler::protected_routes().layer(
-        axum::middleware::from_fn_with_state(state.clone(), middleware::auth::auth_middleware),
+    let public_routes = handler::public_routes().layer(
+        axum::middleware::from_fn_with_state(state.clone(), middleware::pod_name_header),
     );
+    let protected_routes = handler::protected_routes().layer(
+        axum::middleware::from_fn_with_state(state.clone(), middleware::auth::auth_middleware))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), middleware::pod_name_header));
 
     let router = Router::new()
         .merge(public_routes)
@@ -49,7 +59,10 @@ async fn main() {
         .with_state(state);
 
     let listen_addr = env::var("LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".into());
+    tracing::info!("Server listening on {}", listen_addr);
+
     let listener = tokio::net::TcpListener::bind(listen_addr).await.unwrap();
 
+    
     axum::serve(listener, router).await.unwrap();
 }
