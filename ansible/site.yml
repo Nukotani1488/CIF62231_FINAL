@@ -16,3 +16,15 @@
   become: true
   roles:
     - worker
+
+- name: Deploy Blog Application
+  hosts: control_plane
+  become: true
+  roles:
+    - deploy_blog
+
+- name: Test High Availability
+  hosts: control_plane
+  become: true
+  roles:
+    - test_ha
