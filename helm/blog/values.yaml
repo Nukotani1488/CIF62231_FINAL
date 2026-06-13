@@ -1,8 +1,8 @@
 blog:
   image:
-    repository: nukotani/blog
+    repository: blog
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Never
   listenAddr: "0.0.0.0:3000"
   admin: # This credential is used for administration and should be set to a non-empty value
     username: "admin" # Set this to a non-empty value

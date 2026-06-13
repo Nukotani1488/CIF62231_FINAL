@@ -63,18 +63,6 @@
     KUBECONFIG: "{{ kubeconfig }}"
   when: metrics_status.rc != 0
 
-- name: Build blog Docker image
-  delegate_to: localhost
-  command: >
-    docker build -t {{ blog_image }} .
-  args:
-    chdir: "{{ blog_src }}"
-
-- name: Save blog image as tar
-  delegate_to: localhost
-  become: true
-  shell: docker save {{ blog_image }} | gzip > /tmp/blog.tar.gz
-
 - name: Deploy blog
   command: >
     helm upgrade --install blog {{ blog_chart_dest }}

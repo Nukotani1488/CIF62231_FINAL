@@ -32,6 +32,10 @@ spec:
           {{- end}}
 
           env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: LISTEN_ADDR
               value: {{ .Values.blog.listenAddr | quote }}
             - name: DATABASE_URL

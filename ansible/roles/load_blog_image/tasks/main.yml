@@ -1,4 +1,3 @@
----
 - name: Copy image to all nodes
   become: true
   copy:
@@ -6,10 +5,9 @@
     dest: /tmp/blog-image.tar.gz
     mode: '0644'
 
-- name: Load blog image on all nodes
+- name: Load image into containerd
   become: true
-  command: >
-    docker load -i /tmp/blog-image.tar.gz
+  shell: gzip -dc /tmp/blog-image.tar.gz | ctr -n k8s.io images import -
 
 - name: Clean up image tar
   become: true
