@@ -19,50 +19,43 @@ spec:
           image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
           ports:
             - containerPort: 5432
-
-          {{- if .Values.postgres.resources}}
+          {{- if .Values.postgres.resources }}
           resources:
             requests:
               cpu: {{ .Values.postgres.resources.requests.cpu }}
               memory: {{ .Values.postgres.resources.requests.memory }}
-            {{- if .Values.postgres.resources.limits}}
+            {{- if .Values.postgres.resources.limits }}
             limits:
               cpu: {{ .Values.postgres.resources.limits.cpu }}
               memory: {{ .Values.postgres.resources.limits.memory }}
-            {{- end}}
-          {{- end}}
-
+            {{- end }}
+          {{- end }}
           env:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secrets
                   key: POSTGRES_USER
-
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secrets
                   key: POSTGRES_PASSWORD
-
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-secrets
                   key: POSTGRES_DB
-
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
-
+          {{- if .Values.postgres.persistence.enabled }}
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
-
+          {{- end }}
+      {{- if .Values.postgres.persistence.enabled }}
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
-            claimName: {{ if .Values.postgres.storage.existingClaim }}
-              {{ .Values.postgres.storage.existingClaim }}
-            {{- else }}
-              {{ .Release.Name }}-postgres-pvc
-            {{- end }}
+            claimName: {{ if .Values.postgres.persistence.existingClaim }}{{ .Values.postgres.persistence.existingClaim }}{{ else }}{{ .Release.Name }}-postgres-pvc{{ end }}
+      {{- end }}
