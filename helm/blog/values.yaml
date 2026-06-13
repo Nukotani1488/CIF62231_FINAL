@@ -5,8 +5,8 @@ blog:
     pullPolicy: IfNotPresent
   listenAddr: "0.0.0.0:3000"
   admin: # This credential is used for administration and should be set to a non-empty value
-    username: "" # Set this to a non-empty value
-    password: "" # Set this to a non-empty value
+    username: "admin" # Set this to a non-empty value
+    password: "password" # Set this to a non-empty value
   resources:
     requests:
       cpu: 10m
@@ -16,9 +16,9 @@ postgres:
   image:
     repository: postgres
     tag: "15"
-  database: "" # This is intentionally left empty to allow for flexible database naming. You can specify a database name as needed.
-  username: "" # This is intentionally left empty to allow for flexible username assignment. You can specify a username as needed.
-  password: "" # This is intentionally left empty to allow for flexible password assignment. You can specify a password as needed.
+  database: "blog" # This is intentionally left empty to allow for flexible database naming. You can specify a database name as needed.
+  username: "admin" # This is intentionally left empty to allow for flexible username assignment. You can specify a username as needed.
+  password: "password" # This is intentionally left empty to allow for flexible password assignment. You can specify a password as needed.
   persistence:
     enabled: false
 #    size: 
@@ -29,6 +29,7 @@ postgres:
       memory: 256Mi
 
 service:
+  type: ClusterIP
   port: 80
 
 serviceAccount:
@@ -36,7 +37,7 @@ serviceAccount:
 #  name: ""
 
 ingress:
-  enabled: true
+  enabled: false
   className: "traefik" # This is intentionally left empty to allow for flexible ingress class assignment. You can specify an ingress class name as needed.
   annotations: 
     kubernetes.io/ingress.class: traefik
@@ -52,6 +53,10 @@ ingress:
   # - secretName: blog-tls
   #   hosts:
   #     - blog.local
+
+ingressRoute:
+  enabled: true
+
 httpRoute:
   enabled: false
 

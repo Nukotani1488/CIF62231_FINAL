@@ -1,0 +1,18 @@
+---
+- name: Copy image to all nodes
+  become: true
+  copy:
+    src: /tmp/blog-image.tar.gz
+    dest: /tmp/blog-image.tar.gz
+    mode: '0644'
+
+- name: Load blog image on all nodes
+  become: true
+  command: >
+    docker load -i /tmp/blog-image.tar.gz
+
+- name: Clean up image tar
+  become: true
+  file:
+    path: /tmp/blog-image.tar.gz
+    state: absent

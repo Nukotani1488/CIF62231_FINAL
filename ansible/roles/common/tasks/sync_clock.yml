@@ -1,0 +1,16 @@
+- name: Ensure makestep in chrony config
+  become: true
+  lineinfile:
+    path: /etc/chrony/chrony.conf
+    line: "makestep 1 -1"
+    regexp: "^makestep"
+
+- name: Restart chrony
+  become: true
+  systemd:
+    name: chrony
+    state: restarted
+    
+- name: Force clock sync
+  become: true
+  command: chronyc makestep

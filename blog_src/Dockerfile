@@ -1,5 +1,6 @@
+ARG BUILDPLATFORM=linux/amd64
 FROM --platform=$BUILDPLATFORM rust:1.95 AS builder
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \

@@ -1,0 +1,9 @@
+---
+blog_chart_src: "../helm/blog"
+traefik_chart_src: "../helm/traefik"
+blog_chart_dest: "/tmp/blog-chart"
+traefik_chart_dest: "/tmp/traefik-chart"
+blog_image: "blog:latest"
+kubeconfig: "/etc/kubernetes/admin.conf"
+traefik_namespace: "traefik"
+blog_src: "../blog_src"

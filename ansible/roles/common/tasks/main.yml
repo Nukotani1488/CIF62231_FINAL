@@ -1,4 +1,12 @@
 ---
+- import_tasks: sync_clock.yml
+
+- name: Disable unattended upgrades
+  systemd:
+    name: unattended-upgrades
+    enabled: false
+    state: stopped
+
 - name: Disable swap
   command: swapoff -a
   changed_when: false
@@ -71,21 +79,56 @@
 
 - name: Generate default containerd config
   shell: containerd config default > /etc/containerd/config.toml
-  args:
-    creates: /etc/containerd/config.toml
 
 - name: Enable SystemdCgroup in containerd
   replace:
     path: /etc/containerd/config.toml
     regexp: 'SystemdCgroup = false'
     replace: 'SystemdCgroup = true'
-  notify: Restart containerd
 
+- name: Restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+    
 - name: Enable and start containerd
   systemd:
     name: containerd
     enabled: true
     state: started
+
+- name: Install Docker Engine packages
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+    update_cache: true
+
+- name: Create /etc/docker directory
+  file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Configure Docker daemon to use systemd cgroup driver
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "exec-opts": ["native.cgroupdriver=systemd"],
+        "log-driver": "json-file",
+        "log-opts": {"max-size": "100m"},
+        "storage-driver": "overlay2"
+      }
+    mode: "0644"
+
+- name: Restart and enable docker
+  systemd:
+    name: docker
+    state: restarted
+    enabled: true
 
 - name: Add Kubernetes GPG key
   shell: |

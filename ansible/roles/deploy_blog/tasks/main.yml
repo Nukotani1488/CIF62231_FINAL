@@ -1,0 +1,88 @@
+---
+- name: Copy blog chart to control plane
+  synchronize:
+    src: "{{ blog_chart_src }}/"
+    dest: "{{ blog_chart_dest }}"
+    delete: true
+  delegate_to: localhost
+
+- name: Copy Traefik chart to control plane
+  synchronize:
+    src: "{{ traefik_chart_src }}/"
+    dest: "{{ traefik_chart_dest }}"
+    delete: true
+  delegate_to: localhost
+
+- name: Add Traefik Helm repo
+  command: helm repo add traefik https://traefik.github.io/charts
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  changed_when: false
+
+- name: Add metrics-server helm repo
+  command: helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  changed_when: false
+
+- name: Update Helm repos
+  command: helm repo update
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  changed_when: false
+
+- name: Check if Traefik already installed
+  command: helm status traefik --namespace {{ traefik_namespace }}
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: traefik_status
+  failed_when: false
+
+- name: Install Traefik
+  command: >
+    helm upgrade --install traefik traefik/traefik
+    --namespace {{ traefik_namespace }} --create-namespace -f {{ traefik_chart_dest }}/values.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  when: traefik_status.rc != 0
+
+- name: Check if metrics-server is already installed
+  command: helm status metrics-server --namespace kube-system
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: metrics_status
+  failed_when: false
+
+- name: Deploy metrics-server
+  command: >
+    helm upgrade --install metrics-server metrics-server/metrics-server
+    --namespace kube-system
+    --set args[0]=--kubelet-insecure-tls
+    --wait
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  when: metrics_status.rc != 0
+
+- name: Build blog Docker image
+  delegate_to: localhost
+  command: >
+    docker build -t {{ blog_image }} .
+  args:
+    chdir: "{{ blog_src }}"
+
+- name: Save blog image as tar
+  delegate_to: localhost
+  become: true
+  shell: docker save {{ blog_image }} | gzip > /tmp/blog.tar.gz
+
+- name: Deploy blog
+  command: >
+    helm upgrade --install blog {{ blog_chart_dest }}
+    -f {{ blog_chart_dest }}/values.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+
+- name: Clean up chart
+  file:
+    path: "{{ blog_chart_dest }}"
+    state: absent

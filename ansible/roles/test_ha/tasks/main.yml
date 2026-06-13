@@ -1,0 +1,24 @@
+---
+- name: Ensure HPA is running
+  command: kubectl get hpa blog
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: hpa_check
+  failed_when: hpa_check.rc != 0
+
+- name: Create load test job
+  copy:
+    dest: /tmp/load-test-job.yaml
+    content: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: load-test-job
+      spec:
+        template:
+          spec:
+            containers:
+            - name: load-tester
+              image: busybox
+              command: ["sh", "-c", "while true; do wget -q -O- http://{{ hostvars['control']['ansible_default_ipv4']['address'] }}:30080; sleep 1; done"]
+            restartPolicy: Never

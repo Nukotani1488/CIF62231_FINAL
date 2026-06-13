@@ -1,0 +1,4 @@
+---
+blog_image: "blog:latest"
+blog_source_src: "../blog_src"
+blog_architecture: "amd64"

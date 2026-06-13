@@ -1,0 +1,13 @@
+---
+- name: Build blog Docker image
+  community.docker.docker_image:
+    name: "{{ blog_image }}"
+    source: build
+    build:
+      path: "{{ blog_source_src }}"
+- name: Save blog image as tar
+  shell: |
+    docker save {{ blog_image }} | gzip > /tmp/blog-image.tar.gz
+  args:
+    executable: /bin/bash
+    creates: /tmp/blog-image.tar.gz

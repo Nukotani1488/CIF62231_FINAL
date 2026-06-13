@@ -1,6 +1,6 @@
 ---
 - name: Apply common configuration to all nodes
-  hosts: all
+  hosts: cluster_nodes
   become: true
   roles:
     - common
@@ -16,6 +16,18 @@
   become: true
   roles:
     - worker
+
+- name: Build blog image
+  hosts: localhost
+  become: false
+  roles:
+    - build_blog
+
+- name: Load blog image on all nodes
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - load_blog_image
 
 - name: Deploy Blog Application
   hosts: control_plane

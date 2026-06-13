@@ -1,0 +1,47 @@
+---
+- name: Ensure required packages for key verification
+  apt:
+    name:
+      - curl
+      - gpg
+      - apt-transport-https
+    state: present
+    update_cache: true
+
+- name: Fetch Helm GPG key
+  shell: |
+    curl -fsSL https://packages.buildkite.com/helm-linux/helm-debian/gpgkey > "${TMPDIR:-/tmp}/helm.gpg"
+  args:
+    creates: "${TMPDIR:-/tmp}/helm.gpg"
+
+- name: Verify Helm APT key fingerprint and install keyring
+  shell: |
+    set -e
+
+    HELM_BUILDKITE_APT_KEY_ID="DDF78C3E6EBB2D2CC223C95C62BA89D07698DBC6"
+    FPR="$(gpg --show-keys --with-colons "${TMPDIR:-/tmp}/helm.gpg" | awk -F: '$1 == "fpr" {print $10}' | head -n 1)"
+    if [ "${FPR}" != "${HELM_BUILDKITE_APT_KEY_ID}" ]; then
+      echo "ERROR: Unexpected Helm APT key ID: potential key compromise"
+      exit 1
+    fi
+
+    cat "${TMPDIR:-/tmp}/helm.gpg" | gpg --dearmor > /usr/share/keyrings/helm.gpg
+  args:
+    creates: /usr/share/keyrings/helm.gpg
+
+- name: Add Helm apt repository
+  copy:
+    dest: /etc/apt/sources.list.d/helm-stable-debian.list
+    content: |
+      deb [signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main
+    mode: '0644'
+
+- name: Update apt cache (for helm repo)
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install helm
+  apt:
+    name: helm
+    state: present
