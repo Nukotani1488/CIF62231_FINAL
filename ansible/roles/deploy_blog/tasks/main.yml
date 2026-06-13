@@ -41,7 +41,8 @@
 - name: Install Traefik
   command: >
     helm upgrade --install traefik traefik/traefik
-    --namespace {{ traefik_namespace }} --create-namespace -f {{ traefik_chart_dest }}/values.yaml
+    --namespace {{ traefik_namespace }} 
+    --create-namespace -f {{ traefik_chart_dest }}/values.yaml
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
   when: traefik_status.rc != 0
@@ -67,6 +68,7 @@
   command: >
     helm upgrade --install blog {{ blog_chart_dest }}
     -f {{ blog_chart_dest }}/values.yaml
+    --wait
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
 

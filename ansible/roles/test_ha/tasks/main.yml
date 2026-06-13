@@ -20,5 +20,10 @@
             containers:
             - name: load-tester
               image: busybox
-              command: ["sh", "-c", "while true; do wget -q -O- http://{{ hostvars['control']['ansible_default_ipv4']['address'] }}:30080; sleep 1; done"]
+              command: ["sh", "-c", "while true; do wget -q -O- http://{{ blog_address }}}}:30080 & sleep 0.1; done"]
             restartPolicy: Never
+
+- name: Apply load test job
+  command: kubectl apply -f /tmp/load-test-job.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
