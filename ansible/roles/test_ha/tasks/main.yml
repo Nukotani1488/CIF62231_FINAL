@@ -1,4 +1,27 @@
 ---
+- name: Scale blog deployment to 3 replicas
+  command: kubectl scale deployment blog --replicas=3
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+
+- name: Wait for rollout to complete
+  command: kubectl rollout status deployment/blog --timeout=120s
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+
+- name: Check for different pod names across requests
+  shell: for i in $(seq 1 10); do curl -s -i http://{{ blog_address }}:30080 | grep -i "X-Pod-Name"; done | sort -u
+  register: pod_name_check
+
+- name: Show pod name check result
+  debug:
+    var: pod_name_check.stdout_lines
+
+- name: Scale blog deployment back to 1 replica
+  command: kubectl scale deployment blog --replicas=1
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+
 - name: Ensure HPA is running
   command: kubectl get hpa blog
   environment:
@@ -20,7 +43,7 @@
             containers:
             - name: load-tester
               image: busybox
-              command: ["sh", "-c", "while true; do wget -q -O- http://{{ blog_address }}}}:30080 & sleep 0.1; done"]
+              command: ["sh", "-c", "while true; do wget -q -O- http://{{ blog_address }}:30080 & sleep 0.1; done"]
             restartPolicy: Never
 
 - name: Apply load test job
