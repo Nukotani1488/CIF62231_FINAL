@@ -13,9 +13,10 @@
   shell: for i in $(seq 1 10); do curl -s -i http://{{ blog_address }}:30080 | grep -i "X-Pod-Name"; done | sort -u
   register: pod_name_check
 
-- name: Show pod name check result
-  debug:
-    var: pod_name_check.stdout_lines
+- name: Fail if all requests hit the same pod
+  fail:
+    msg: "All requests returned the same pod name: {{ pod_name_check.stdout_lines }}"
+  when: pod_name_check.stdout_lines | length < 2
 
 - name: Scale blog deployment back to 1 replica
   command: kubectl scale deployment blog --replicas=1
@@ -29,6 +30,15 @@
   register: hpa_check
   failed_when: hpa_check.rc != 0
 
+- name: Wait for HPA metrics to be available
+  shell: kubectl get hpa blog --no-headers | awk '{print $3}' | grep -v '<unknown>'
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: hpa_metrics
+  until: hpa_metrics.rc == 0
+  retries: 24
+  delay: 10
+
 - name: Create load test job
   copy:
     dest: /tmp/load-test-job.yaml
@@ -38,15 +48,41 @@
       metadata:
         name: load-test-job
       spec:
+        parallelism: 5
         template:
           spec:
             containers:
             - name: load-tester
               image: busybox
-              command: ["sh", "-c", "while true; do wget -q -O- http://{{ blog_address }}:30080 & sleep 0.1; done"]
+              command: ["sh", "-c", "while true; do wget -q -O- http://{{ blog_address }}:30080; done"]
             restartPolicy: Never
 
 - name: Apply load test job
   command: kubectl apply -f /tmp/load-test-job.yaml
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+
+- name: Wait for HPA to scale up
+  shell: kubectl get hpa blog --no-headers | awk '{print $7}' | grep -v '^1$'
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: hpa_scale_check
+  until: hpa_scale_check.rc == 0
+  retries: 24
+  delay: 10
+
+- name: Show HPA status
+  command: kubectl get hpa blog
+  environment:
+    KUBECONFIG: "{{ kubeconfig }}"
+  register: hpa_status
+
+- name: Fail if HPA did not scale up
+  fail:
+    msg: "HPA did not scale up: {{ hpa_status.stdout }}"
+  when: hpa_scale_check.rc != 0
+
+- name: Delete load test job
+  command: kubectl delete job load-test-job
   environment:
     KUBECONFIG: "{{ kubeconfig }}"
